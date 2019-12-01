@@ -2,27 +2,12 @@ package eventstore
 
 import (
 	"eventstorming"
-	"eventstorming/utils/utilsmongo"
 	"math/rand"
 	"strconv"
 	"time"
 
 	mgo "gopkg.in/mgo.v2"
 )
-
-const (
-	EVENT_COLL = "eventstore"
-)
-
-func NewMongoAdapterEventStore() (MongoAdapterEventStore, error) {
-	db, err := utilsmongo.MongoEventStoreLogin()
-	if err != nil {
-		return MongoAdapterEventStore{}, err
-	}
-	return MongoAdapterEventStore{
-		Collection: db.C(EVENT_COLL),
-	}, nil
-}
 
 type MongoAdapterEventStore struct {
 	Collection *mgo.Collection
@@ -31,7 +16,7 @@ type MongoAdapterEventStore struct {
 func (adapter MongoAdapterEventStore) Save(event *eventstorming.Event) error {
 	event.EventID = adapter.generateEventID()
 	event.TimeStamp = time.Now().UTC().Format(time.RFC3339)
-	return adapter.Collection.Insert(event)
+	return adapter.execute(event)
 }
 
 func (adapter MongoAdapterEventStore) generateEventID() string {
@@ -40,4 +25,14 @@ func (adapter MongoAdapterEventStore) generateEventID() string {
 	rand.Seed(time.Now().UnixNano())
 	id := strconv.Itoa(minIDLength + rand.Intn(additionalIDLength))
 	return id
+}
+
+func (adapter MongoAdapterEventStore) execute(event *eventstorming.Event) error {
+	if adapter.Collection.Database.Session.Ping() != nil {
+		adapter.Collection.Database.Session.Refresh()
+		if err := adapter.Collection.Database.Session.Ping(); err != nil {
+			return err
+		}
+	}
+	return adapter.Collection.Insert(event)
 }

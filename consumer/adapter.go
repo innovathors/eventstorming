@@ -14,11 +14,11 @@ import (
 
 type RedisEventConsumer struct {
 	Client           *redis.Client
-	HandlerConsumers map[string]EventConsumerHandler
 	Group            string
 	Consumer         string
 	NewMessage       bool
 	Foreground       bool
+	HandlerConsumers map[string]EventConsumerHandler
 	LogFunction      func(functionName string, message string)
 }
 
@@ -27,15 +27,16 @@ func (adapter RedisEventConsumer) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	go adapter.recover(streams, ctx)
 	if adapter.Foreground {
-		adapter.start(streams, ctx)
+		adapter.consume(streams, ctx)
 	} else {
-		go adapter.start(streams, ctx)
+		go adapter.consume(streams, ctx)
 	}
 	return nil
 }
 
-func (adapter RedisEventConsumer) start(streams []string, ctx context.Context) {
+func (adapter RedisEventConsumer) consume(streams []string, ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -72,6 +73,48 @@ func (adapter RedisEventConsumer) start(streams []string, ctx context.Context) {
 					}
 				}
 			}
+		}
+	}
+}
+
+func (adapter RedisEventConsumer) recover(streams []string, ctx context.Context) {
+	minIdle := time.Minute
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			for _, stream := range streams {
+				pendingExts, err := adapter.Client.XPendingExt(&redis.XPendingExtArgs{
+					Stream: stream,
+					Group:  adapter.Group,
+					Start:  "-",
+					End:    "+",
+					Count:  1000,
+				}).Result()
+				if err != nil {
+					adapter.log("redis.XPendingExt", err.Error())
+					continue
+				}
+				ids := []string{}
+				for _, pendingExt := range pendingExts {
+					if pendingExt.Consumer != adapter.Consumer {
+						ids = append(ids, pendingExt.ID)
+					}
+				}
+				if len(ids) > 0 {
+					if err := adapter.Client.XClaim(&redis.XClaimArgs{
+						Stream:   stream,
+						Group:    adapter.Group,
+						MinIdle:  minIdle,
+						Consumer: adapter.Consumer,
+						Messages: ids,
+					}).Err(); err != nil {
+						adapter.log("redis.XClaim", err.Error())
+					}
+				}
+			}
+			time.Sleep(minIdle)
 		}
 	}
 }
