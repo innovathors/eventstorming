@@ -6,7 +6,7 @@ import (
 )
 
 type EventConsumer interface {
-	Run(ctx context.Context)
+	Run(ctx context.Context) error
 }
 
 type EventConsumerHandler interface {
