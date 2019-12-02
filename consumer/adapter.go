@@ -3,9 +3,10 @@ package consumer
 import (
 	"encoding/json"
 	"errors"
-	"eventstorming"
 	"log"
 	"time"
+
+	"github.com/bagus212/eventstorming"
 
 	"context"
 

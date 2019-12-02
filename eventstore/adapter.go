@@ -1,10 +1,11 @@
 package eventstore
 
 import (
-	"eventstorming"
 	"math/rand"
 	"strconv"
 	"time"
+
+	"github.com/bagus212/eventstorming"
 
 	mgo "gopkg.in/mgo.v2"
 )
@@ -13,7 +14,7 @@ type MongoAdapterEventStore struct {
 	Collection *mgo.Collection
 }
 
-func (adapter MongoAdapterEventStore) Save(event *eventstorming.Event) error {
+func (adapter MongoAdapterEventStore) Save(event eventstorming.Event) error {
 	event.EventID = adapter.generateEventID()
 	event.TimeStamp = time.Now().UTC().Format(time.RFC3339)
 	return adapter.execute(event)
@@ -27,7 +28,7 @@ func (adapter MongoAdapterEventStore) generateEventID() string {
 	return id
 }
 
-func (adapter MongoAdapterEventStore) execute(event *eventstorming.Event) error {
+func (adapter MongoAdapterEventStore) execute(event eventstorming.Event) error {
 	if adapter.Collection.Database.Session.Ping() != nil {
 		adapter.Collection.Database.Session.Refresh()
 		if err := adapter.Collection.Database.Session.Ping(); err != nil {

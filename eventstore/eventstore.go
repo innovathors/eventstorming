@@ -1,7 +1,7 @@
 package eventstore
 
-import "eventstorming"
+import "github.com/bagus212/eventstorming"
 
 type EventStore interface {
-	Save(event *eventstorming.Event) error
+	Save(event eventstorming.Event) error
 }

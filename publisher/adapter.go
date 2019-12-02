@@ -1,8 +1,8 @@
 package publisher
 
 import (
-	"eventstorming"
-	"eventstorming/eventstore"
+	"github.com/bagus212/eventstorming"
+	"github.com/bagus212/eventstorming/eventstore"
 
 	"github.com/go-redis/redis"
 )
@@ -16,7 +16,7 @@ type RedisAdapterDomainEventPublisher struct {
 
 func (adapter RedisAdapterDomainEventPublisher) Publish(event eventstorming.Event) error {
 	if adapter.SaveToEventStore {
-		if err := adapter.EventStore.Save(&event); err != nil {
+		if err := adapter.EventStore.Save(event); err != nil {
 			return err
 		}
 	}
