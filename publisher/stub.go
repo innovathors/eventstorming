@@ -1,6 +1,8 @@
 package publisher
 
 import (
+	"errors"
+
 	"github.com/bagus212/eventstorming"
 )
 
@@ -13,5 +15,5 @@ func (mock *PublisherSuccessStub) Publish(event eventstorming.Event) error {
 type PublisherErrorStub struct{}
 
 func (mock *PublisherErrorStub) Publish(event eventstorming.Event) error {
-	return nil
+	return errors.New("error")
 }
