@@ -32,11 +32,11 @@ func (adapter RedisEventConsumer) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	streams, err := adapter.initStream(client)
+	streams, err := adapter.initStreams(client)
 	if err != nil {
 		return err
 	}
-	go adapter.recover(streams, ctx, client)
+	go adapter.recover(adapter.streams(), ctx, client)
 	if adapter.Foreground {
 		adapter.consume(streams, ctx, client)
 	} else {
@@ -136,7 +136,7 @@ func (adapter RedisEventConsumer) log(functionName string, message string) {
 	}
 }
 
-func (adapter RedisEventConsumer) initStream(client *redis.Client) ([]string, error) {
+func (adapter RedisEventConsumer) initStreams(client *redis.Client) ([]string, error) {
 	var streams []string
 	var startMessage string
 	if adapter.NewMessage {
@@ -157,6 +157,14 @@ func (adapter RedisEventConsumer) initStream(client *redis.Client) ([]string, er
 		streams = append(streams, ">")
 	}
 	return streams, nil
+}
+
+func (adapter RedisEventConsumer) streams() []string {
+	var streams []string
+	for stream := range adapter.HandlerConsumers {
+		streams = append(streams, stream)
+	}
+	return streams
 }
 
 func (adapter RedisEventConsumer) messageToEvent(values map[string]interface{}) (eventstorming.Event, error) {
