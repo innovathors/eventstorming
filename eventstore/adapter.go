@@ -42,6 +42,7 @@ func (adapter *MongoAdapterEventStore) init() error {
 				return err
 			}
 		}
+		adapter.collection = session.DB(adapter.DB).C(adapter.Collection)
 	}
 	return nil
 }
