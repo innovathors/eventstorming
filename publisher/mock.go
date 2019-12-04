@@ -1,7 +1,7 @@
 package publisher
 
 import (
-	"github.com/bagus212/eventstorming"
+	"github.com/innovathors/eventstorming"
 	"github.com/stretchr/testify/mock"
 )
 

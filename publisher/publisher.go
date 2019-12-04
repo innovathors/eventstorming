@@ -1,6 +1,6 @@
 package publisher
 
-import "github.com/bagus212/eventstorming"
+import "github.com/innovathors/eventstorming"
 
 type DomainEventPublisher interface {
 	Publish(event eventstorming.Event) error

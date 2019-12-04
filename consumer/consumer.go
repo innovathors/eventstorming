@@ -2,7 +2,7 @@ package consumer
 
 import (
 	"context"
-	"github.com/bagus212/eventstorming"
+	"github.com/innovathors/eventstorming"
 )
 
 type EventConsumer interface {

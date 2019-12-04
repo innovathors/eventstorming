@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/bagus212/eventstorming"
+	"github.com/innovathors/eventstorming"
 	"gopkg.in/mgo.v2"
 )
 

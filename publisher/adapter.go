@@ -1,9 +1,9 @@
 package publisher
 
 import (
-	"github.com/bagus212/eventstorming"
-	"github.com/bagus212/eventstorming/eventstore"
-	"github.com/bagus212/eventstorming/utils"
+	"github.com/innovathors/eventstorming"
+	"github.com/innovathors/eventstorming/eventstore"
+	"github.com/innovathors/eventstorming/utils"
 
 	"github.com/go-redis/redis"
 )
