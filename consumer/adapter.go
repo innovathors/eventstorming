@@ -6,6 +6,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/bagus212/eventstorming/utils"
+
 	"github.com/bagus212/eventstorming"
 
 	"context"
@@ -14,7 +16,9 @@ import (
 )
 
 type RedisEventConsumer struct {
-	Client           *redis.Client
+	RedisUrl         string
+	DBIndex          string
+	Password         string
 	Group            string
 	Consumer         string
 	NewMessage       bool
@@ -24,26 +28,30 @@ type RedisEventConsumer struct {
 }
 
 func (adapter RedisEventConsumer) Run(ctx context.Context) error {
-	streams, err := adapter.initStream()
+	client, err := utils.RedisDBLogin(adapter.RedisUrl, adapter.DBIndex, adapter.Password)
 	if err != nil {
 		return err
 	}
-	go adapter.recover(streams, ctx)
+	streams, err := adapter.initStream(client)
+	if err != nil {
+		return err
+	}
+	go adapter.recover(streams, ctx, client)
 	if adapter.Foreground {
-		adapter.consume(streams, ctx)
+		adapter.consume(streams, ctx, client)
 	} else {
-		go adapter.consume(streams, ctx)
+		go adapter.consume(streams, ctx, client)
 	}
 	return nil
 }
 
-func (adapter RedisEventConsumer) consume(streams []string, ctx context.Context) {
+func (adapter RedisEventConsumer) consume(streams []string, ctx context.Context, client *redis.Client) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			streams, err := adapter.Client.XReadGroup(&redis.XReadGroupArgs{
+			streams, err := client.XReadGroup(&redis.XReadGroupArgs{
 				Streams:  streams,
 				Group:    adapter.Group,
 				Consumer: adapter.Consumer,
@@ -67,7 +75,7 @@ func (adapter RedisEventConsumer) consume(streams []string, ctx context.Context)
 						adapter.log("adapter.HandlerConsumers[stream.Stream].Apply(event)", err.Error())
 						continue
 					}
-					err = adapter.Client.XAck(stream.Stream, adapter.Group, message.ID).Err()
+					err = client.XAck(stream.Stream, adapter.Group, message.ID).Err()
 					if err != nil {
 						adapter.log("redis.XAck", err.Error())
 						continue
@@ -78,7 +86,7 @@ func (adapter RedisEventConsumer) consume(streams []string, ctx context.Context)
 	}
 }
 
-func (adapter RedisEventConsumer) recover(streams []string, ctx context.Context) {
+func (adapter RedisEventConsumer) recover(streams []string, ctx context.Context, client *redis.Client) {
 	minIdle := time.Minute
 	for {
 		select {
@@ -86,7 +94,7 @@ func (adapter RedisEventConsumer) recover(streams []string, ctx context.Context)
 			return
 		default:
 			for _, stream := range streams {
-				pendingExts, err := adapter.Client.XPendingExt(&redis.XPendingExtArgs{
+				pendingExts, err := client.XPendingExt(&redis.XPendingExtArgs{
 					Stream: stream,
 					Group:  adapter.Group,
 					Start:  "-",
@@ -104,7 +112,7 @@ func (adapter RedisEventConsumer) recover(streams []string, ctx context.Context)
 					}
 				}
 				if len(ids) > 0 {
-					if err := adapter.Client.XClaim(&redis.XClaimArgs{
+					if err := client.XClaim(&redis.XClaimArgs{
 						Stream:   stream,
 						Group:    adapter.Group,
 						MinIdle:  minIdle,
@@ -128,7 +136,7 @@ func (adapter RedisEventConsumer) log(functionName string, message string) {
 	}
 }
 
-func (adapter RedisEventConsumer) initStream() ([]string, error) {
+func (adapter RedisEventConsumer) initStream(client *redis.Client) ([]string, error) {
 	var streams []string
 	var startMessage string
 	if adapter.NewMessage {
@@ -140,7 +148,7 @@ func (adapter RedisEventConsumer) initStream() ([]string, error) {
 		if stream == "" {
 			return streams, errors.New("missing redis stream name")
 		}
-		if err := adapter.Client.XGroupCreateMkStream(stream, adapter.Group, startMessage).Err(); err != nil && err.Error() != "BUSYGROUP Consumer Group name already exists" {
+		if err := client.XGroupCreateMkStream(stream, adapter.Group, startMessage).Err(); err != nil && err.Error() != "BUSYGROUP Consumer Group name already exists" {
 			return streams, err
 		}
 		streams = append(streams, stream)
