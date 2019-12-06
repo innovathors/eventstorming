@@ -28,6 +28,9 @@ type RedisEventConsumer struct {
 }
 
 func (adapter RedisEventConsumer) Run(ctx context.Context) error {
+	if len(adapter.HandlerConsumers) == 0 {
+		return nil
+	}
 	client, err := utils.RedisDBLogin(adapter.RedisUrl, adapter.DBIndex, adapter.Password)
 	if err != nil {
 		return err
