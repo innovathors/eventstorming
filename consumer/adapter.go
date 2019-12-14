@@ -49,14 +49,14 @@ func (adapter RedisEventConsumer) Run(ctx context.Context) error {
 	return nil
 }
 
-func (adapter RedisEventConsumer) consume(streams []string, ctx context.Context, client *redis.Client) {
+func (adapter RedisEventConsumer) consume(channels []string, ctx context.Context, client *redis.Client) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		default:
 			streams, err := client.XReadGroup(&redis.XReadGroupArgs{
-				Streams:  streams,
+				Streams:  channels,
 				Group:    adapter.Group,
 				Consumer: adapter.Consumer,
 				NoAck:    false,
