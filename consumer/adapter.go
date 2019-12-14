@@ -16,7 +16,7 @@ import (
 )
 
 type RedisEventConsumer struct {
-	RedisUrl         string
+	RedisURL         string
 	DBIndex          string
 	Password         string
 	Group            string
@@ -28,16 +28,17 @@ type RedisEventConsumer struct {
 }
 
 func (adapter RedisEventConsumer) Run(ctx context.Context) error {
-	if len(adapter.HandlerConsumers) == 0 {
-		return nil
-	}
-	client, err := utils.RedisDBLogin(adapter.RedisUrl, adapter.DBIndex, adapter.Password)
+	client, err := utils.RedisDBLogin(adapter.RedisURL, adapter.DBIndex, adapter.Password)
 	if err != nil {
 		return err
 	}
 	streams, err := adapter.initStreams(client)
 	if err != nil {
 		return err
+	}
+	if len(streams) == 0 {
+		adapter.LogFunction("len streams", "zero")
+		return nil
 	}
 	go adapter.recover(adapter.streams(), ctx, client)
 	if adapter.Foreground {
