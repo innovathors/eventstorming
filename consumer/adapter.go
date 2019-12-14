@@ -50,6 +50,7 @@ func (adapter RedisEventConsumer) Run(ctx context.Context) error {
 }
 
 func (adapter RedisEventConsumer) consume(channels []string, ctx context.Context, client *redis.Client) {
+	defer adapter.log("consume", "close")
 	for {
 		select {
 		case <-ctx.Done():
